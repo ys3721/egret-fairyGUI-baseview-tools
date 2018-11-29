@@ -1,6 +1,8 @@
 import os
+from xml.dom import minidom
 
 moduleConfig={}
+packagesConfig={}
 
 def createLua(uipropath, luapatch):
     global saveLuaPath
@@ -17,3 +19,8 @@ def createLua(uipropath, luapatch):
                 try:
                     doc = minidom.parse(packagePath)
                     rootElement = doc.documentElement
+                    pkgid = rootElement.getAttribute("id")
+                    packagesConfig[pkgid] = packageName
+                    publish = rootElement.getElementsByTagName("publish")[0]
+                    imagelist = rootElement.getElementByTagName("image")
+                    excluded = publish.getAttribute("excluded").split(",")
