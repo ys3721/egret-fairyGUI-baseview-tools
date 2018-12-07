@@ -34,7 +34,7 @@ def createLua(uipropath, luapatch):
                                     if not os.path.exists(resourcePath + "/image/" + image.getAttribute("path")):
                                         os.makedirs(resourcePath + "/image/" + image.getAttribute("path"))
                                     imagePath = packagePath.replace("/package.xml", image.getAttribute("path") + image.getAttribute("name"))
-                                    execCmd()
+                                    execCmd("xcopy %s %s/image/%s/%s" % (imagePath, resourcePath.packageName.image.getAttribute("name")))
                                 print("begin to fuck the exclude id of %s, in packageName=%s" %(imageid, packageName))
                 except Exception as e:
                     print(e)
@@ -42,4 +42,4 @@ def createLua(uipropath, luapatch):
 def execCmd(cmd):
     return os.popen(cmd).read()
 
-createLua("H:\\h5\\share\\UI\\gameui\\assets", "H:\\h5\\client\\game\\src\\bingogame\\view")
+createLua("H:\\h5\\share\\UI\\gameui\\assets", "H:\\h5\\client_tools\\game\\src\\bingogame\\view")
