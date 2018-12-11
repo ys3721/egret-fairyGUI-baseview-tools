@@ -1,45 +1,45 @@
 import os
+import shutil
 from xml.dom import minidom
 
 moduleConfig = {}
 packagesConfig = {}
 
 
-def createLua(uipropath, luapatch):
-    global saveLuaPath
-    global uiPath
-    uiPath = uipropath
-    saveLuaPath = luapatch;
-    resourcePath = saveLuaPath.replace("src/bingogame/view", "resource")
-    if os.path.isdir(uipropath):
-        imageTS = {}
-        for packageName in os.listdir(uipropath):
-            packagePath = os.path.join(uipropath, packageName) + "/package.xml"
-            if packageName[0] != "." and os.path.exists(packagePath):
-                if packageName not in moduleConfig:
-                    moduleConfig[packageName] = {}
-                try:
-                    doc = minidom.parse(packagePath)
-                    rootElement = doc.documentElement
-                    pkgid = rootElement.getAttribute("id")
-                    packagesConfig[pkgid] = packageName
-                    publish = rootElement.getElementsByTagName("publish")[0]
-                    imagelist = rootElement.getElementsByTagName("image")
-                    excluded = publish.getAttribute("excluded").split(",")
-                    for image in imagelist:
-                        imageid = image.getAttribute("id")
-                        for exid in excluded:
-                            if exid == imageid:
-                                if "image" == packageName:
-                                    if not os.path.exists(resourcePath + "/image/" + image.getAttribute("path")):
-                                        os.makedirs(resourcePath + "/image/" + image.getAttribute("path"))
-                                    imagePath = packagePath.replace("/package.xml", image.getAttribute("path") + image.getAttribute("name"))
-                                    execCmd("xcopy %s %s/image/%s/%s" % (imagePath, resourcePath.packageName.image.getAttribute("name")))
-                                print("begin to fuck the exclude id of %s, in packageName=%s" %(imageid, packageName))
-                except Exception as e:
-                    print(e)
+def generate_base_view(fairyGUI_assets_path, export_workspace_view_path):
+    for package_folder_name in os.listdir(fairyGUI_assets_path):
+        package_file_path = os.path.join(fairyGUI_assets_path, package_folder_name) + "/package.xml"
+        print("Begin read file :" + package_file_path)
+        read_package(package_file_path, export_workspace_view_path, fairyGUI_assets_path, package_folder_name)
 
-def execCmd(cmd):
-    return os.popen(cmd).read()
 
-createLua("H:\\h5\\share\\UI\\gameui\\assets", "H:\\h5\\client_tools\\game\\src\\bingogame\\view")
+def read_package(package_xml_file_path, workspace_resource_path, pfairyGUI_assets_path, package_folder_name):
+    doc = minidom.parse(package_xml_file_path)
+    root_element = doc.documentElement
+    package_id = root_element.getAttribute("id")
+    packagesConfig[package_id] = package_xml_file_path
+    # publish element
+    publish_element = root_element.getElementsByTagName("publish")[0]
+    excluded_image_ids = publish_element.getAttribute("excluded").split(",")
+    # image elements
+    image_elements = root_element.getElementsByTagName("image")
+    # 遍历所有的image elements取它的id
+    for image_element in image_elements:
+        image_id = image_element.getAttribute("id")
+        for excluded_image_id in excluded_image_ids:
+            if excluded_image_id == image_id:
+                if "image" == package_folder_name:
+                    copy_image_to_workspace(workspace_resource_path, pfairyGUI_assets_path, image_element)
+
+
+def copy_image_to_workspace(workspace_resource_path, package_xml_path, image_element):
+    target_path = workspace_resource_path + "/image/" + image_element.getAttribute("path")
+    if not os.path.exists(target_path):
+        os.makedirs(target_path)
+
+    image_path = package_xml_path+ "/image/" + image_element.getAttribute("path") + image_element.getAttribute("name")
+    copy_image_command = "%s %s%s" % (image_path, target_path, image_element.getAttribute("name"))
+    print("Will copy %s" % (copy_image_command))
+    shutil.copy(copy_image_command.split(" ")[0], copy_image_command.split(" ")[1])
+
+generate_base_view("H:\\h5\\share\\UI\\gameui\\assets", "H:\\h5\\client_tools\\game\\src\\bingogame\\view")
