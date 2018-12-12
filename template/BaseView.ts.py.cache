@@ -1,0 +1,124 @@
+timestamp: 1540889635.08
+
+_extend=_buf.extend;_to_str=to_str;_escape=escape; _extend(('''/** This is an automatically generated. Please do not modify it. **/
+module gameview{\n''', ));
+# -*- coding: utf-8 -*-
+_extend(('''    export class ''', _escape(_to_str(viewName)), '''Base extends ''', _escape(_to_str(superView)), '''{\n''', ));
+for item in components:
+    if item["luaClass"]=="":
+        if item["type"] =="Button":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GButton;\n''', ));
+        elif item["type"] =="list":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GList;\n''', ));
+        elif item["type"] =="ComboBox":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GComboBox;\n''', ));
+        elif item["type"] =="Slider":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GSlider;\n''', ));
+        elif item["type"] =="image":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GImage;\n''', ));
+        elif item["type"] =="loader":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GLoader;\n''', ));
+        elif item["type"] =="text":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GTextField;\n''', ));
+        elif item["type"] =="input":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GTextInput;\n''', ));
+        elif item["type"] =="richtext":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GRichTextField;\n''', ));
+        elif item["type"] =="graph":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GGraph;\n''', ));
+        elif item["type"] =="movieclip":
+            _extend(('''        public ''', _escape(_to_str(item["name"])), ''':fairygui.GMovieClip;\n''', ));
+        else:
+            _extend(('''//      public ''', _escape(_to_str(item["name"])), ''':''', _escape(_to_str(item["type"])), ''';\n''', ));
+        #endif
+    else:
+        _extend(('''        public ''', _escape(_to_str(item["name"])), ''':''', _escape(_to_str(item["luaClass"])), ''';\n''', ));
+    #endif
+#endfor
+if superView.find("fairygui.G")>-1:
+    _extend(('''        private signals:Array<any>=[];
+        protected onInit():void{
+            this.addSlot();
+        }
+       
+        protected addSlot() {
+
+        }
+        protected addSlot2Signal(signal:any,slot:Function):void{
+            framework.EventManager.addSlot2Signal(signal,slot,this);
+        }
+        protected removeSlot():void{
+            framework.EventManager.removeAllSlot(this);
+        }
+        public dispose():void{
+            this.removeAllEventListener();
+            this.removeSlot();
+            super.dispose();
+        }\n''', ));
+#endif
+content = contentView.strip()=="" and " " or contentView+" , "
+_extend(('''
+        protected constructFromXML(xml: any): void {
+            super.constructFromXML(xml);\n''', ));
+if superView.find("fairygui.G")>-1:
+    _extend(('''            framework.BaseView.constructFromXMLGButton(this);\n''', ));
+#endif
+for item in components:
+    if item["touchable"]:
+        if item["luaClass"] =="HeroView" or  item["type"] =="Button" or item["type"] =="loader":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.addEventListener(egret.TouchEvent.TOUCH_TAP,this.''', _escape(_to_str(item["name"])), '''onClick,this);\n''', ));
+        elif item["type"] =="list":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.addEventListener(fairygui.ItemEvent.CLICK,this.''', _escape(_to_str(item["name"])), '''ClickItem,this);\n''', ));
+        elif item["type"] =="ComboBox":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.addEventListener(egret.TouchEvent.TOUCH_TAP,this.''', _escape(_to_str(item["name"])), '''onChanged,this);\n''', ));
+        elif item["type"] =="Slider":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.addEventListener(egret.TouchEvent.TOUCH_TAP,this.''', _escape(_to_str(item["name"])), '''onChanged,this);\n''', ));
+        #endif
+    #endif
+#endfor
+_extend(('''            this.onInit();
+        }
+        
+        public removeAllEventListener():void{\n''', ));
+if superView.find("fairygui.G")<0:
+    _extend(('''            super.removeAllEventListener();\n''', ));
+#endif
+for item in components:
+    if item["touchable"]:
+        if item["luaClass"] =="HeroView" or item["type"] =="Button" or item["type"] =="loader":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.removeEventListener(egret.TouchEvent.TOUCH_TAP,this.''', _escape(_to_str(item["name"])), '''onClick,this);\n''', ));
+        elif item["type"] =="list":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.removeEventListener(fairygui.ItemEvent.CLICK,this.''', _escape(_to_str(item["name"])), '''ClickItem,this);\n''', ));
+        elif item["type"] =="ComboBox":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.removeEventListener(egret.TouchEvent.TOUCH_TAP,this.''', _escape(_to_str(item["name"])), '''onChanged,this);\n''', ));
+        elif item["type"] =="Slider":
+            _extend(('''            this.''', _escape(_to_str(item["name"])), '''.removeEventListener(egret.TouchEvent.TOUCH_TAP,this.''', _escape(_to_str(item["name"])), '''onChanged,this);\n''', ));
+        #endif
+    #endif
+#endfor
+_extend(('''        }
+        
+        \n''', ));
+for item in components:
+    if item["touchable"]:
+        if item["luaClass"] =="HeroView" or item["type"] =="Button" or item["type"] =="loader":
+            _extend(('''        protected ''', _escape(_to_str(item["name"])), '''onClick(event:egret.TouchEvent):void{
+            
+        }\n''', ));
+        elif item["type"] =="list":
+            _extend(('''        protected ''', _escape(_to_str(item["name"])), '''ClickItem(event: fairygui.ItemEvent):void{
+            
+        }\n''', ));
+        elif item["type"] =="ComboBox":
+            _extend(('''        protected ''', _escape(_to_str(item["name"])), '''onChanged():void{
+            
+        }\n''', ));
+        elif item["type"] =="Slider":
+            _extend(('''        protected ''', _escape(_to_str(item["name"])), '''onChanged():void{
+            
+        }\n''', ));
+        #endif
+    #endif
+#endfor
+_extend(('''    }
+}''', ));

@@ -1,0 +1,49 @@
+timestamp: 1537413533.85
+
+_extend=_buf.extend;_to_str=to_str;_escape=escape; _extend(('''module gameview{\n''', ));
+# -*- coding: utf-8 -*-
+_extend(('''    export class ''', _escape(_to_str(viewName)), ''' extends ''', _escape(_to_str(viewName)), '''Base{
+        protected onInit():void{
+            super.onInit();\n''', ));
+for item in components:
+    if item["defaultItem"]!="" and item["type"]=="list":
+        _extend(('''            this.''', _escape(_to_str(item["name"])), '''.setVirtual();
+            this.''', _escape(_to_str(item["name"])), '''.callbackThisObj= this;
+            this.''', _escape(_to_str(item["name"])), '''.itemRenderer=this.''', _escape(_to_str(item["name"])), '''itemRenderer;
+            this.''', _escape(_to_str(item["name"])), '''.numItems = 0;\n''', ));
+    #endif
+#endfor
+_extend(('''        }
+        public updateView(args:any=null):void{
+
+        }
+//      添加监听
+        protected addSlot(){
+
+        }\n''', ));
+for item in components:
+    if item["type"] =="Button":
+        _extend(('''        protected ''', _escape(_to_str(item["name"])), '''onClick():void{
+            
+        }\n''', ));
+    elif item["type"] =="list":
+        _extend(('''        protected ''', _escape(_to_str(item["name"])), '''ClickItem(event: fairygui.ItemEvent):void{
+            
+        }\n''', ));
+        if item["defaultItem"]!="":
+            _extend(('''        protected ''', _escape(_to_str(item["name"])), '''itemRenderer(index:number, item:''', _escape(_to_str(item["defaultItem"])), '''):void{
+            item.updateView(index);
+        }\n''', ));
+        #endif
+    elif item["type"] =="ComboBox":
+        _extend(('''        protected ''', _escape(_to_str(item["name"])), '''onChanged():void{
+            
+        }\n''', ));
+    elif item["type"] =="Slider":
+        _extend(('''        protected ''', _escape(_to_str(item["name"])), '''onChanged():void{
+            
+        }\n''', ));
+    #endif
+#endfor
+_extend(('''    }
+}''', ));

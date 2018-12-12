@@ -3,6 +3,7 @@ import shutil
 from xml.dom import minidom
 from PIL import Image
 import json
+import tenjin
 
 moduleConfig = {}
 packagesConfig = {}
@@ -16,6 +17,7 @@ imageTS = {}
 
 
 def generate_base_view(fairyGUI_assets_path, export_workspace):
+    engine = tenjin.Engine()
     global egret_workspace_root
     egret_workspace_root = export_workspace
     global fairy_assets_path
@@ -33,8 +35,6 @@ def init_paths():
     egret_workspace_view_path = egret_workspace_root + "/src/bingogame/view"
     global egret_workspace_source_path
     egret_workspace_source_path = egret_workspace_root + "/resource"
-
-
 
 
 def read_package(package_xml_file_path, package_folder_name):
