@@ -4,6 +4,15 @@ from xml.dom import minidom
 from PIL import Image
 import json
 import tenjin
+import Config
+
+
+CONFIG_SCREEN_WIDTH = 960
+CONFIG_SCREEN_HEIGHT = 540
+WINDOWSVIEW = {"Account":0}
+# 关键字 不可使用
+KEYVALE={"name":True,"apexIndex":True,"mask":True,"baseUserData":True,"viewWidth":True,"viewHeight":True, "x":True,"y":True,"scrollPane":True,"opaque":True,"margin":True,"childrenRenderOrder":True}
+packagesImport={"wuy3bh5gasf42v":True,"js0d6vmkcwn9t7":True,"xkpsx4uivd0a2o":True,"62g0ma7tdyidb":True,"wuy3bh5gilz148":True, "xkpsx4uietk131":True}
 
 moduleConfig = {}
 packagesConfig = {}
@@ -14,6 +23,9 @@ egret_workspace_view_path = ""
 egret_workspace_source_path = ""
 
 imageTS = {}
+NEWLUAFILES=[]
+CLASSNAMES={}
+packagesType={}
 
 
 def generate_base_view(fairyGUI_assets_path, export_workspace):
@@ -27,6 +39,13 @@ def generate_base_view(fairyGUI_assets_path, export_workspace):
         package_xml_file_path = os.path.join(fairyGUI_assets_path, package_xml_folder_name) + "/package.xml"
         print("Begin read file :" + package_xml_file_path)
         read_package(package_xml_file_path, package_xml_folder_name)
+
+    for pkgid in packagesConfig:
+        pcckageName = packagesConfig[pkgid]
+        createPackage(os.path.join(fairyGUI_assets_path, package_xml_folder_name), package_xml_folder_name)
+    engin = tenjin.Engine()
+    template = tenjin.SafeTemplate('template/ModuleConfigAuto.ts.py')
+    wirte2file(egret_workspace_root+"/ModuleConfigAuto.ts", template.render({"modules":moduleConfig}))
 
 
 def init_paths():
@@ -94,33 +113,36 @@ def general_view_class():
         package_xml_file_path = packagesConfig[package_xml_id]
 
 
-def create_package(path, package_name):
-    """这里的path就是包的路径，package 那么是包名，比如 alliance battle 之类"""
-    doc = minidom.parse(path+"package.xml")
-    root_element = doc.documentElement
-    package_id = root_element.getAttribute("id")
-    if package_id not in packagesConfig:
-        packagesConfig[package_id] = package_name
-    component_list = root_element.getElementsByTagName("component")
-    for component in component_list:
+def createPackage(path,packageName):
+    doc = minidom.parse(path+"/package.xml")
+    rootElement = doc.documentElement
+    pkgid = rootElement.getAttribute("id")
+    if pkgid not in packagesConfig:
+        packagesConfig[pkgid] = packageName
+    componentlist=rootElement.getElementsByTagName("component")
+    for component in componentlist:
         if "true" == component.getAttribute("exported"):
-            component_id = component.getAttribute("id")
-            componet_file_name = component.getAttribute("name")
-            componet_path = component.getAttribute("path")
-            if path != "":
-                componet_file_name = componet_path[1:] + componet_file_name
-            name = componet_file_name[:-4]
-            name = name.split("/")[-1]
-            className = name[0].upper() + name[1:]
-            moduleConfig[package_name][className] = {"id":component_id, "packageNames":[package_name], "ui":"ui://" + get_package_id(package_name) + package_id, "className":className, "outsideTouchCancel":False, "viewPath":"oyeahgame." + package_name+"." + className, "bgsound":False, "fullScrren":False}
-            if not os.path.exists(egret_workspace_root + "/" + package_name.lower() +  "/view"):
-                os.makedirs(egret_workspace_root + "/" + package_name.lower() +  "/view")
-            xml2lua(path + "/" + file, packageName, name, packageid)
+            packageid=component.getAttribute("id")
+            file=component.getAttribute("name")
+            subpath = component.getAttribute("path")
+            if path!="":
+               file= subpath[1:]+file
+            name=file[:-4]
+            name=name.split("/")[-1]
+            className=name[0].upper()+name[1:]
+            if not moduleConfig[packageName].has_key(className):
+                moduleConfig[packageName][className]={"id":packageid,"packageNames":[packageName],"ui":"ui://"+getPackageId(packageName)+packageid,"className":className,"outsideTouchCancel":False,"viewPath":"oyeahgame."+packageName+"."+className,"bgsound":False,"fullScreen":False}#,"controlPath":"oyeahgame."+packageName+".view."+className+"Base"}
+                if not os.path.exists(egret_workspace_view_path):
+                    os.makedirs(egret_workspace_source_path)
+                xml2lua(path+"/"+file,packageName,name,packageid)
 
-readFileList={}
-CLASSNAMES={}
-CONFIG_SCREEN_WIDTH = 960
-CONFIG_SCREEN_HEIGHT = 540
+
+def getPackageId(packageName):
+    for x in packagesConfig:
+        if packagesConfig[x] == packageName:
+            return x
+    return ""
+
 
 def xml2lua(file, packageName, luaname, componentid):
     global readFileList
@@ -141,7 +163,7 @@ def xml2lua(file, packageName, luaname, componentid):
     superView = "framework.BaseView"
     contentView = "contentPane"
     extention = rootElement.getAttribute("extention")
-    if "" == extention or WINDOWSVIEW.has_key(luaname):
+    if "" == extention or luaname in WINDOWSVIEW:
         if size[0] > 100 and not hasbeImport(getPackageId(packageName), componentid):
             superView = "framework.BaseWindow"
     else:
@@ -160,16 +182,16 @@ def xml2lua(file, packageName, luaname, componentid):
                 pkg = node.getAttribute("pkg")
                 if pkg != "":
                     # 挎包引用图片
-                    if packagesConfig.has_key(pkg):
+                    if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
-                        if moduleConfig.has_key(packageName) and moduleConfig[packageName].has_key(luaname):
+                        if packageName in moduleConfig and luaname in moduleConfig[packageName]:
                             addToList(moduleConfig[packageName][luaname]["packageNames"], subpkg)
                 # moduleConfig[packageName][luaname]["packageNames"].append(packagesConfig[pkg])
             elif "loader" == nodeName:
                 pkg = node.getAttribute("url")
                 if pkg != "" and pkg.find("ui:") > -1:
                     pkg = pkg[5:13]
-                    if packagesConfig.has_key(pkg):
+                    if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
                         if moduleConfig.has_key(packageName) and moduleConfig[packageName].has_key(luaname):
                             addToList(moduleConfig[packageName][luaname]["packageNames"], subpkg)
@@ -177,7 +199,7 @@ def xml2lua(file, packageName, luaname, componentid):
                 pkg = node.getAttribute("font")
                 if pkg != "" and pkg.find("ui:") > -1:
                     pkg = pkg[5:13]
-                    if packagesConfig.has_key(pkg):
+                    if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
                         if moduleConfig.has_key(packageName) and moduleConfig[packageName].has_key(luaname):
                             addToList(moduleConfig[packageName][luaname]["packageNames"], subpkg)
@@ -232,7 +254,7 @@ def xml2lua(file, packageName, luaname, componentid):
                                     addToList(packageNames, subpkg)
                     nameID = node.getAttribute("name")
                     if isWrongName(nameID):
-                        log("%s 控件名称错误 请修改 '%s'" % (luaname, nameID))
+                        print("%s 控件名称错误 请修改 '%s'" % (luaname, nameID))
                         raise ValueError
                     # 普通组不生成代码
                     if "group" == nodeName:
@@ -278,15 +300,92 @@ def xml2lua(file, packageName, luaname, componentid):
                }
     moduleConfig[packageName][luaname]["layerTag"] = "UI_VIEW_TYPE.WINLAYER"
     engine = tenjin.Engine()
-    wirte2file(saveluapath + "/" + packageName.lower() + "/view/" + luaname + "Base.ts",
+    wirte2file(egret_workspace_source_path + "/" + packageName.lower() + "/view/" + luaname + "Base.ts",
                engine.render('template/BaseView.ts.py', context))
-    if os.path.exists(saveluapath + "/" + packageName.lower() + "/" + luaname + ".ts"):
+    if os.path.exists(egret_workspace_source_path + "/" + packageName.lower() + "/" + luaname + ".ts"):
         # mergeLuaFunction(saveluapath+"/"+packageName.lower()+"/"+luaname+".ts",luaname,engine.render('template/View.ts.py', context))
-        log("file exits:%s/%s.ts" % (packageName, luaname))
+        print("file exits:%s/%s.ts" % (packageName, luaname))
         pass
     else:
-        wirte2file(saveluapath + "/" + packageName.lower() + "/" + luaname + ".ts",
+        wirte2file(egret_workspace_source_path + "/" + packageName.lower() + "/" + luaname + ".ts",
                    engine.render('template/View.ts.py', context))
+
+
+def wirte2file(filname,values):
+    f = open(filname,"wb")
+    f.write(values)
+    f.close()
+    NEWLUAFILES.append(filname)
+
+def getComponentName(packageName,xmlName):
+    key = packageName+"."+xmlName
+    if key not in packagesType:
+        doc = minidom.parse(fairy_assets_path+"/"+packageName+"/package.xml")
+        rootElement = doc.documentElement
+        components=rootElement.getElementsByTagName("component")
+        className= xmlName
+        for node in components:
+            if xmlName == node.getAttribute("id"):
+                className =  node.getAttribute("name")
+                break
+        if className == xmlName:
+            packagesType[key]=["",""]
+        else:
+            doc = minidom.parse(fairy_assets_path+"/"+packageName+node.getAttribute("path")+className)
+            extention = doc.documentElement.getAttribute("extention")
+            className=className[0].upper()+className[1:-4]
+            packagesType[key]=[className,extention]
+    return packagesType[key][0], packagesType[key][1]
+
+
+def hasbeImport(packageId,componentid):
+    packagekey = packageId+componentid
+    if packagesImport.has_key(packagekey):
+        return packagesImport[packagekey]
+    else:
+        for __packageId in packagesConfig:
+            packageName = packagesConfig[__packageId]
+            doc = minidom.parse(fairy_assets_path+"/"+packageName+"/package.xml")
+            rootElement = doc.documentElement
+            componentlist=rootElement.getElementsByTagName("component")
+            for component in componentlist:
+                file=component.getAttribute("name")
+                path = component.getAttribute("path")
+                file = fairy_assets_path+"/"+packageName+path+file
+                try:
+                    doc = minidom.parse(file)
+                except Exception as e:
+                    print ("解析文件错误:%s" %(file))
+                    raise e
+                rootElement = doc.documentElement
+                displayList=rootElement.getElementsByTagName("displayList")
+                if len(displayList)>0:
+                    displayList=displayList[0]
+                    for node in displayList.childNodes:
+                        if "#text" != node.nodeName:
+                            pkg = node.getAttribute("pkg")
+                            if len(pkg)<5:
+                                pkg=__packageId
+                            if pkg==packageId:
+                                if node.getAttribute("src") == componentid :
+                                    packagesImport[packagekey]=True
+                                    return packagesImport[packagekey]
+                                else:
+                                    defaultItem =node.getAttribute("defaultItem")
+                                    if len(defaultItem)>13:
+                                        if defaultItem[13:]==componentid and defaultItem[5:13]==packageId:
+                                            packagesImport[packagekey]=True
+                                            return packagesImport[packagekey]
+                displayList=rootElement.getElementsByTagName("item")
+                for node in displayList:
+                    defaultItem = node.getAttribute("url")
+                    if len(defaultItem)>13:
+                        if defaultItem[13:]==componentid and defaultItem[5:13]==packageId:
+                            packagesImport[packagekey]=True
+                            return packagesImport[packagekey]
+
+    packagesImport[packagekey]=False
+    return packagesImport[packagekey]
 
 
 def isWrongName(luaname):
@@ -331,4 +430,3 @@ def get_package_id(packageName):
 
 
 generate_base_view("H:\\h5\\share\\UI\\gameui\\assets", "H:\\h5\\client_tools\\game\\")
-generate_view_class()
