@@ -38,6 +38,8 @@ def generate_base_view(fairyGUI_assets_path, export_workspace):
     for package_xml_folder_name in os.listdir(fairy_assets_path):
         package_xml_file_path = os.path.join(fairyGUI_assets_path, package_xml_folder_name) + "/package.xml"
         print("Begin read file :" + package_xml_file_path)
+        if package_xml_folder_name not in moduleConfig:
+            moduleConfig[package_xml_folder_name] = {}
         read_package(package_xml_file_path, package_xml_folder_name)
 
     for pkgid in packagesConfig:
@@ -87,10 +89,11 @@ def assemble_img_res(package_xml_id, package_folder_name, image_element):
 
     if not os.path.exists("%s/config/" % egret_workspace_source_path):
         os.maakedirs("%s/config/" % egret_workspace_source_path)
+    """
     image_res_file = open("%s/config/ImageResPath.json" % egret_workspace_source_path, "w")
     image_res_file.write(json.dumps(imageTS, sort_keys=True, indent=4, separators=(',', ':')))
     image_res_file.close()
-
+    """
 
 def copy_image_to_workspace(image_element, package_folder_name):
     if package_folder_name == "image":
@@ -130,7 +133,7 @@ def createPackage(path,packageName):
             name=file[:-4]
             name=name.split("/")[-1]
             className=name[0].upper()+name[1:]
-            if not moduleConfig[packageName].has_key(className):
+            if className not in moduleConfig:
                 moduleConfig[packageName][className]={"id":packageid,"packageNames":[packageName],"ui":"ui://"+getPackageId(packageName)+packageid,"className":className,"outsideTouchCancel":False,"viewPath":"oyeahgame."+packageName+"."+className,"bgsound":False,"fullScreen":False}#,"controlPath":"oyeahgame."+packageName+".view."+className+"Base"}
                 if not os.path.exists(egret_workspace_view_path):
                     os.makedirs(egret_workspace_source_path)
@@ -143,7 +146,6 @@ def getPackageId(packageName):
             return x
     return ""
 
-
 def xml2lua(file, packageName, luaname, componentid):
     global readFileList
     global CLASSNAMES
@@ -153,7 +155,6 @@ def xml2lua(file, packageName, luaname, componentid):
     readFileList[file]=True
     doc = minidom.parse(file)
     rootElement = doc.documentElement
-    size = rootElement.get
     size = rootElement.getAttribute("size")
     size = size.split(",")
     size = [int(size[0]), int(size[1])]
@@ -193,7 +194,7 @@ def xml2lua(file, packageName, luaname, componentid):
                     pkg = pkg[5:13]
                     if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
-                        if moduleConfig.has_key(packageName) and moduleConfig[packageName].has_key(luaname):
+                        if packageName in moduleConfig and luaname in moduleConfig:
                             addToList(moduleConfig[packageName][luaname]["packageNames"], subpkg)
             elif "text" == nodeName:
                 pkg = node.getAttribute("font")
@@ -201,7 +202,7 @@ def xml2lua(file, packageName, luaname, componentid):
                     pkg = pkg[5:13]
                     if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
-                        if moduleConfig.has_key(packageName) and moduleConfig[packageName].has_key(luaname):
+                        if packageName in moduleConfig and luaname in moduleConfig:
                             addToList(moduleConfig[packageName][luaname]["packageNames"], subpkg)
             if "#text" != nodeName:
                 defaultItem = node.getAttribute("defaultItem")
@@ -238,10 +239,10 @@ def xml2lua(file, packageName, luaname, componentid):
                         # path[-1]=node.getAttribute("src")+".xml"
                         pkg = node.getAttribute("pkg")
                         if pkg != "":
-                            if packagesConfig.has_key(pkg):
+                            if pkg in packagesConfig:
                                 subpkg = packagesConfig[pkg]
                                 # path[-2]=subpkg
-                                if moduleConfig.has_key(packageName) and moduleConfig[packageName].has_key(luaname):
+                                if packageName in moduleConfig and moduleConfig[packageName].has_key(luaname):
                                     addToList(moduleConfig[packageName][luaname]["packageNames"], subpkg)
                         # path="/".join(path)
                         luaClass, nodeName = getComponentName(subpkg, node.getAttribute("src"))
