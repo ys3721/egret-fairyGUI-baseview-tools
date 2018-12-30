@@ -1,6 +1,8 @@
 from xml.dom import minidom
 import os
 import tenjin
+from tenjin.helpers import *
+from tenjin.escaped import is_escaped, as_escaped, to_escaped
 
 CONFIG_SCREEN_WIDTH  = 960
 CONFIG_SCREEN_HEIGHT = 540
@@ -24,8 +26,15 @@ NEWLUAFILES=[]
 def general_base_view(assets_path):
     init_configs(assets_path)
 
+    for package_id in packagesConfig:
+        package_name = packagesConfig[package_id]
+        create_package(os.path.join(uipath, package_name), package_name)
+
 
 def init_configs(assets_path):
+    """主要用来初始化 packageConfig 和 moduleConfig， 其中packageConfig记录了package id和package name的字典，
+       moduleConfig记录了，key=packag_name value={}字典的字典
+    """
     for package_name in os.listdir(assets_path):
         doc = minidom.parse(os.path.join(assets_path, package_name, "package.xml"))
         root_element = doc.documentElement
@@ -36,21 +45,28 @@ def init_configs(assets_path):
 
 
 def create_package(path, package_name):
+    """ path是每个模块的path， 也就是package的path，package name 其实就是module name 啦。
+    这个函数实在是太长了，我都不知道是在干什么"""
+    # 开始读取了package xml， 每个模块下的
     doc = minidom.parse(os.path.join(path, "package.xml"))
     root_element = doc.documentElement
     package_id = root_element.getAttribute("id")
     if package_id not in packagesConfig:
         packagesConfig[package_id] = package_name
+    # 取package的每个 component 节点
     component_list = root_element.getElementsByTagName("component")
     for component in component_list:
-        if "true" == component.getArribute("exported"):
-            component_id = component.getArribute("id")
+        if "true" == component.getAttribute("exported"):
+            component_id = component.getAttribute("id")
             file = component.getAttribute("name")
-            sub_path = component.getArribute("path")
+            # sub path 指的是component的xml的path， 大多是“/”
+            sub_path = component.getAttribute("path")
             if path != "":
+                # file is the component xlm 's relative path
                 file = sub_path[1:] + file
             name = file[:-4]
             name = name.split("/")[-1]
+            # class name is the component xml's name, use the component name as class name.
             className = name[0].upper() + name[1:]
             moduleConfig[package_name][className] = {
                 "id": component_id,
@@ -65,14 +81,17 @@ def create_package(path, package_name):
                 os.makedirs(save_lua_path + "/" + package_name.lower() + "/view")
             xml2lua(path + "/" + file, package_name, name, component_id)
 
+
 def xml2lua(file, package_name, lua_name, component_id):
+    """file is component.xml 's relative path, lua_name is the class name of component ,
+     package_name is moudle name, component_id is component id in package.xml"""
     global readFileList
     global CLASSNAMES
     if file in readFileList or not os.path.exists(file):
         return
     lua_name = lua_name[0].upper() + lua_name[1:]
-
     readFileList[file] = True
+    # Begin read component xml, first read the size, assert the panel type. Second
     doc = minidom.parse(file)
     root_element = doc.documentElement
     size = root_element.getAttribute("size")
@@ -83,8 +102,10 @@ def xml2lua(file, package_name, lua_name, component_id):
         panel_type = 2;
     superView = "framework.BaseView"
     contentView = "contentPane"
+    # This extention only Button value. I Look.
     extention = root_element.getAttribute("extention")
     if "" == extention or lua_name in WINDOWSVIEW:
+        # I don't know the has be import means but not important
         if size[0] > 100 and not has_be_import(get_package_id(package_name), component_id):
             superView = "framework.BaseWindow"
     else:
@@ -92,38 +113,48 @@ def xml2lua(file, package_name, lua_name, component_id):
     components = []
     importClcass = {}
     contentPane = "contentPane"
+    # This is the image loader text ext. in the component xml
     displayList = root_element.getElementsByTagName("displayList")
     if len(displayList) > 0:
         displayList = displayList[0]
         for node in displayList.childNodes:
+            # Begin loop thought the nodes of display
             nodeName = node.nodeName
             luaClass = ""
             virtualdefaultItem = ""
+            # Process image loader and text
             if "image" == nodeName or "movieclip" == nodeName:
+                # Image maybe in other package folder
                 pkg = node.getAttribute("pkg")
                 if pkg != "":
-                    # 挎包引用图片
+                    # 跨包引用图片
                     if pkg in packagesConfig:
+                        # package name of the Image or MovieClip belong in folder
                         subpkg = packagesConfig[pkg]
                         if package_name in moduleConfig and lua_name in moduleConfig[package_name]:
+                            # 把package name存到了一个list中
                             addToList(moduleConfig[package_name][lua_name]["package_names"], subpkg)
                 # moduleConfig[package_name][lua_name]["package_names"].append(packagesConfig[pkg])
             elif "loader" == nodeName:
                 pkg = node.getAttribute("url")
                 if pkg != "" and pkg.find("ui:") > -1:
+                    # loader's uri is ui://110ys6klhxyuum, first 5 bit is ui://  And list 6 bit is image id,
+                    # 5:13 is package id
                     pkg = pkg[5:13]
-                    if packagesConfig.has_key(pkg):
+                    if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
-                        if moduleConfig.has_key(package_name) and moduleConfig[package_name].has_key(lua_name):
+                        if package_name in moduleConfig and lua_name in moduleConfig[package_name]:
                             addToList(moduleConfig[package_name][lua_name]["package_names"], subpkg)
             elif "text" == nodeName:
                 pkg = node.getAttribute("font")
+                # font = "ui://rm6hhqi3q7th13q" As same as loader
                 if pkg != "" and pkg.find("ui:") > -1:
                     pkg = pkg[5:13]
-                    if packagesConfig.has_key(pkg):
+                    if pkg in packagesConfig:
                         subpkg = packagesConfig[pkg]
-                        if moduleConfig.has_key(package_name) and moduleConfig[package_name].has_key(lua_name):
+                        if package_name in moduleConfig and lua_name in moduleConfig[package_name]:
                             addToList(moduleConfig[package_name][lua_name]["package_names"], subpkg)
+            # 然后判断了 不是 这个 #text 我不知道这个是个什么东西 而且是不为#text
             if "#text" != nodeName:
                 defaultItem = node.getAttribute("defaultItem")
                 touchable = node.getAttribute("touchable") != "false"
@@ -159,10 +190,10 @@ def xml2lua(file, package_name, lua_name, component_id):
                         # path[-1]=node.getAttribute("src")+".xml"
                         pkg = node.getAttribute("pkg")
                         if pkg != "":
-                            if packagesConfig.has_key(pkg):
+                            if pkg in packagesConfig:
                                 subpkg = packagesConfig[pkg]
                                 # path[-2]=subpkg
-                                if moduleConfig.has_key(package_name) and moduleConfig[package_name].has_key(lua_name):
+                                if package_name in moduleConfig and lua_name in moduleConfig[package_name]:
                                     addToList(moduleConfig[package_name][lua_name]["package_names"], subpkg)
                         # path="/".join(path)
                         luaClass, nodeName = getComponentName(subpkg, node.getAttribute("src"))
@@ -189,7 +220,7 @@ def xml2lua(file, package_name, lua_name, component_id):
                             if component["name"] == nameID:
                                 print("请修改 %s ERROR:包含重复名字 %s " % (lua_name, nameID))
                                 raise ValueError
-                        if KEYVALE.has_key(nameID):
+                        if nameID in KEYVALE:
                             print("请修改 %s ERROR: 包含关键字 %s " % (lua_name, nameID))
                             raise ValueError
                         components.append(
@@ -202,7 +233,7 @@ def xml2lua(file, package_name, lua_name, component_id):
     else:
         moduleConfig[package_name][lua_name]["fullScreen"] = False
 
-    if CLASSNAMES.has_key(lua_name):
+    if lua_name in CLASSNAMES:
         print("请修改 %s ERROR: 文件名冲突 %s " % (lua_name, lua_name))
         raise ValueError
     if isWrongName(lua_name):
@@ -220,9 +251,8 @@ def xml2lua(file, package_name, lua_name, component_id):
                "version": '0.0.0'
                }
     moduleConfig[package_name][lua_name]["layerTag"] = "UI_VIEW_TYPE.WINLAYER"
-    engine = tenjin.Engine()
-    wirte2file(save_lua_path + "/" + package_name.lower() + "/view/" + lua_name + "Base.ts",
-               engine.render('template/BaseView.ts.py', context))
+    engine = tenjin.Engine(path=['base_view_template'])
+    wirte2file(save_lua_path + "/" + package_name.lower() + "/view/" + lua_name + "Base.ts", engine.render('BaseView.pyts', context))
     if os.path.exists(save_lua_path + "/" + package_name.lower() + "/" + lua_name + ".ts"):
         # mergeLuaFunction(save_lua_path+"/"+package_name.lower()+"/"+lua_name+".ts",lua_name,engine.render('template/View.ts.py', context))
         print("file exits:%s/%s.ts" % (package_name, lua_name))
@@ -231,7 +261,7 @@ def xml2lua(file, package_name, lua_name, component_id):
         wirte2file(save_lua_path + "/" + package_name.lower() + "/" + lua_name + ".ts",
                    engine.render('template/View.ts.py', context))
 def wirte2file(filname,values):
-    f = open(filname,"wb")
+    f = open(filname,"w")
     f.write(values)
     f.close()
     NEWLUAFILES.append(filname)
@@ -243,7 +273,7 @@ def addToList(list,item):
     list.append(item)
 
 def isWrongName(nameID):
-    return True
+    return False
 
 def has_be_import(package_id, component_id):
     package_key = package_id + component_id
@@ -297,9 +327,9 @@ def has_be_import(package_id, component_id):
 
 def get_package_id(package_name):
     for x in packagesConfig:
-        if (x == package_name):
+        if packagesConfig[x] == package_name:
             return x
-    return 'nil'
+    return package_id
 
 def addSubPackages(package,componentid):
     # log ("%s-%s" %(packagesConfig[package],componentid))
@@ -315,9 +345,9 @@ def addSubPackages(package,componentid):
             path=component.getAttribute("path")
             name=file[:-4]
             className=name[0].upper()+name[1:]
-            if not moduleConfig.has_key(packageName):
+            if not packageName in moduleConfig:
                 moduleConfig[packageName]={}
-            if not moduleConfig[packageName].has_key(className):
+            if className not in moduleConfig[packageName]:
                 moduleConfig[packageName][className]={"id":packageid,"packageNames":[packageName],"ui":"ui://"+package+componentid,"className":className,"outsideTouchCancel":False,"viewPath":"oyeahgame."+packageName+"."+className,"bgsound":False,"fullScreen":False} #,"controlPath":"oyeahgame."+packageName+".view."+className+"Base"}
                 if not os.path.exists(save_lua_path+"/"+packageName.lower()+"/view"):
                     os.makedirs(save_lua_path+"/"+packageName.lower()+"/view")
@@ -326,7 +356,7 @@ def addSubPackages(package,componentid):
 
 def getComponentName(packageName,xmlName):
     key = packageName+"."+xmlName
-    if not packagesType.has_key(key):
+    if key not in packagesType:
         doc = minidom.parse(uipath+"/"+packageName+"/package.xml")
         rootElement = doc.documentElement
         components=rootElement.getElementsByTagName("component")
