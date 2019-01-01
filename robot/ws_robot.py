@@ -6,12 +6,15 @@ import time
 import websockets
 import robot.pizza as pizza
 
+import robot.cg_handshake.CGHandShake
+import robot.gc_handshake
 
 async def hello():
-    async with websockets.connect(
-            'ws://localhost:8080') as websocket:
-        hand_msg = struct.pack('!hh', 4, 510)
-        await websocket.send(hand_msg)
+    async with websockets.connect('ws://localhost:8080') as websocket:
+        msg_bytes = bytearray()
+        hand_shake_msg = robot.CGHandShake()
+        hand_shake_msg.write(msg_bytes)
+        await websocket.send(msg_bytes)
         greeting = await websocket.recv()
         print(greeting)
 
